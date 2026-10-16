@@ -1,9 +1,9 @@
 name: Scrapping uni login
 
 on:
-  workflow_dispatch:
+  workflow_dispatch: 
   schedule:
-    - cron: '0 10 * * *'
+    - cron: '0 10 * * 1-5'
 
 jobs:
   run-bot:
