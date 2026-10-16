@@ -1,4 +1,4 @@
-name: Atualizador da Carteirinha CEUB
+name: Scrapping UNI QRCode
 
 on:
   workflow_dispatch:
@@ -30,7 +30,7 @@ jobs:
         env:
           RA_ESPACO_ALUNO: ${{ secrets.RA_ESPACO_ALUNO }}
           SENHA_ESPACO_ALUNO: ${{ secrets.SENHA_ESPACO_ALUNO }}
-        run: python test.py
+        run: python scrapping-uni-qrcode.py
 
       - name: Salvar imagem atualizada no repositório
         run: |
