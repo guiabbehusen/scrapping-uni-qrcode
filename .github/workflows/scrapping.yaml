@@ -32,10 +32,19 @@ jobs:
           SENHA_ESPACO_ALUNO: ${{ secrets.SENHA_ESPACO_ALUNO }}
         run: python scrapping-uni-qrcode.py
 
-      - name: Salvar imagem atualizada no repositório
+      - name: Baixar o Armazenamento Privado
+        uses: actions/checkout@v4
+        with:
+          repository: guiabbehusen/imagem-qrcode-ceub
+          token: ${{ secrets.KEY_GITHUB }}
+          path: privado
+
+      - name: Mover a foto e salvar no Cofre
         run: |
-          git config --global user.name "Robo da Carteirinha"
-          git config --global user.email "robo@github.com"
+          cp imagem_convertida.jpg privado/
+          cd privado
+          git config user.name "QR Bot"
+          git config user.email "robo@github.com"
           git add imagem_convertida.jpg
-          git commit -m "Atualiza QR Code diário" || echo "Sem mudanças"
+          git commit -m "Atualiza QR Code diário no Cofre" || echo "Sem mudanças"
           git push
