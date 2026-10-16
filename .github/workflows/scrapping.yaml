@@ -32,6 +32,14 @@ jobs:
           SENHA_ESPACO_ALUNO: ${{ secrets.SENHA_ESPACO_ALUNO }}
         run: python scrapping-uni-qrcode.py
 
+      # NOVO PASSO: Salva a foto do erro (ou sucesso) para você poder baixar e ver
+      - name: Salvar prints (Artefatos)
+        uses: actions/upload-artifact@v4
+        if: always() # Garante que vai salvar a foto mesmo se algo der errado antes
+        with:
+          name: imagens-debug
+          path: "*.png"
+
       - name: Baixar o Armazenamento Privado
         uses: actions/checkout@v4
         with:
@@ -39,12 +47,17 @@ jobs:
           token: ${{ secrets.KEY_GITHUB }}
           path: privado
 
+      # NOVO PASSO: Só tenta mover a foto se ela realmente existir
       - name: Mover a foto e salvar no Cofre
         run: |
-          cp imagem_convertida.jpg privado/
-          cd privado
-          git config user.name "QR Bot"
-          git config user.email "robo@github.com"
-          git add imagem_convertida.jpg
-          git commit -m "Atualiza QR Code diário no Cofre" || echo "Sem mudanças"
-          git push
+          if [ -f imagem_convertida.jpg ]; then
+            cp imagem_convertida.jpg privado/
+            cd privado
+            git config user.name "QR Bot"
+            git config user.email "robo@github.com"
+            git add imagem_convertida.jpg
+            git commit -m "Atualiza QR Code diário no Cofre" || echo "Sem mudanças"
+            git push
+          else
+            echo "A foto não foi gerada hoje. Verifique os artefatos baixados para ver o erro na tela."
+          fi
