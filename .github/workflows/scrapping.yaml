@@ -3,7 +3,7 @@ name: Scrapping UNI QRCode
 on:
   workflow_dispatch:
   schedule:
-    - cron: '0 10 * * 1-5'
+    - cron: '13 10 * * 1-5'
 
 permissions:
   contents: write
