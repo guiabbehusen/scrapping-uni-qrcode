@@ -1,3 +1,4 @@
+from seleniumbase import sb_cdp
 from seleniumbase import SB
 import base64
 import os
@@ -5,50 +6,73 @@ import os
 ra_espaco_aluno = os.environ.get('RA_ESPACO_ALUNO')
 senha_espaco_aluno = os.environ.get('SENHA_ESPACO_ALUNO')
 
+def bypass_captcha_on_url(url):
+    sb = sb_cdp.Chrome()
+    sb.goto(url)
+
+
+    sb.type('#coAcesso', ra_espaco_aluno)
+    sb.type('#coSenha', senha_espaco_aluno)
+    sb.click('#btn-login')
+
+    sb.sleep(3)
+    sb.quit()
+
+
+
 def login_ceub(url):
-    print("Iniciando navegador...")
+    
     with SB(uc=True, headless=True) as sb:
         sb.goto(url)
-        
-        print("Preenchendo credenciais...")
         sb.type('#coAcesso', ra_espaco_aluno)
         sb.type('#coSenha', senha_espaco_aluno)
         sb.click('#btn-login')
         
-        print("Aguardando carregamento da área do aluno...")
+
+        sb.solve_captcha()
+        sb.sleep(10)
         try:
-            # Espera 20 segundos para ver se consegue passar do login
-            sb.wait_for_element('#masterfab', timeout=20)
-            print("Passou do login!")
-        except Exception:
-            print("ERRO: O robô não conseguiu logar (provavelmente preso no CAPTCHA).")
-            sb.save_screenshot("erro_login.png")
-            print("Print salvo como erro_login.png")
-            return # Para o código aqui
+                    # TRY: O robô "tenta" esperar o botão da carteirinha aparecer na tela.
+                    # timeout=20 dá a ele 20 segundos de paciência antes de desistir.
+                    sb.wait_for_element('#masterfab', timeout=20)
+                    print("Sucesso! Passou do login e achou o botão.")
+                    
+        except Exception as erro:
+            print("ERRO: O robô travou na tela de login (provavelmente bloqueio de CAPTCHA).")
+
+            sb.save_screenshot("tela_do_erro.png")
+            print("Uma foto da tela foi salva como 'tela_do_erro.png'")
+
+            return
         
-        sb.sleep(2)
+        print("Esperando o servidor gerar o QR Code...")
+        sb.sleep(10)
         sb.execute_script("ShowQrCode();")
-        
-        print("Aguardando imagem...")
+
         qr_code_base64_raw = ""
-        
-        # Espera a imagem carregar
         for tentativa in range(15):
             sb.sleep(1)
-            src_atual = sb.get_attribute('#imgQRCode', 'src')
-            if src_atual and "base64" in src_atual:
-                qr_code_base64_raw = src_atual
+            qr_code_base64_raw = sb.get_attribute('#imgQRCode', 'src') or ""
+            
+            if "base64" in qr_code_base64_raw:
                 break
-                
+
+        qr_code_base64_raw = sb.get_attribute('#imgQRCode', 'src')
+        
         if "," in qr_code_base64_raw:
             qr_code_base64 = qr_code_base64_raw.split(",")[1]
+
             imagem_bytes = base64.b64decode(qr_code_base64)
             with open("imagem_convertida.jpg", "wb") as arquivo_jpg:
                 arquivo_jpg.write(imagem_bytes)
-            print("SUCESSO: Imagem JPG salva!")
-            sb.save_screenshot("sucesso.png")
+            print("O format esta correto")
         else:
-            print("ERRO: A imagem não carregou a tempo.")
+            print ("o formato nao é base 64")
+            print(qr_code_base64_raw)
+        print("Imagem JPG salva com sucesso!")
+            
+
 
 if __name__ == "__main__":
     login_ceub("https://ea.uniceub.br/")
+
