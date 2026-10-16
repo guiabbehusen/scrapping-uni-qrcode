@@ -1,7 +1,5 @@
 # 🎓 Student ID Automation | Automação de Carteirinha
 
-![Widget Preview](preview.jpg)
-
 *(Scroll down for the English version)*
 
 ## 🇧🇷 Português
@@ -21,6 +19,7 @@ Este projeto automatiza a extração do QR Code da carteirinha estudantil do por
 * **GitHub Actions** (Agendamento e CI/CD)
 * **JavaScript / Scriptable** (Desenvolvimento do widget iOS)
 
+<img src="preview.jpeg" alt="Widget Preview" width="250">
 ---
 
 ## 🇺🇸 English
@@ -39,3 +38,6 @@ This project automates the extraction of the student ID QR Code from the CEUB un
 * **SeleniumBase** (WAF bypass and web interaction)
 * **GitHub Actions** (Cron scheduling and CI/CD)
 * **JavaScript / Scriptable** (iOS widget development)
+
+* 
+<img src="preview.jpeg" alt="Widget Preview" width="250">
