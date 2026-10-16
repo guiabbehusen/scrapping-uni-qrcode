@@ -3,7 +3,8 @@ from seleniumbase import SB
 import base64
 import os
 
-
+ra_espaco_aluno = os.environ.get('RA_ESPACO_ALUNO')
+senha_espaco_aluno = os.environ.get('SENHA_ESPACO_ALUNO')
 
 def bypass_captcha_on_url(url):
     sb = sb_cdp.Chrome()
