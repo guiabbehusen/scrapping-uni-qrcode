@@ -28,9 +28,6 @@ def login_ceub(url):
         sb.type('#coSenha', senha_espaco_aluno)
         sb.click('#btn-login')
         
-
-        sb.solve_captcha()
-        sb.sleep(10)
         try:
                     # TRY: O robô "tenta" esperar o botão da carteirinha aparecer na tela.
                     # timeout=20 dá a ele 20 segundos de paciência antes de desistir.

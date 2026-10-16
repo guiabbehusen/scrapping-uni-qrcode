@@ -1,16 +1,18 @@
-name: Scrapping uni login
+name: Atualizador da Carteirinha CEUB
 
 on:
-  workflow_dispatch: 
+  workflow_dispatch:
   schedule:
     - cron: '0 10 * * 1-5'
 
+permissions:
+  contents: write
+
 jobs:
   run-bot:
-    runs-on: ubuntu-latest 
-    
+    runs-on: ubuntu-latest
     steps:
-      - name: Baixar o código do repositório
+      - name: Baixar o código
         uses: actions/checkout@v4
 
       - name: Configurar o Python
@@ -28,13 +30,12 @@ jobs:
         env:
           RA_ESPACO_ALUNO: ${{ secrets.RA_ESPACO_ALUNO }}
           SENHA_ESPACO_ALUNO: ${{ secrets.SENHA_ESPACO_ALUNO }}
-        run: python scrapping-uni-qrcode.py
+        run: python test.py
 
-      - name: Resgatar Imagens Geradas
-        uses: actions/upload-artifact@v4
-        if: always() 
-        with:
-          name: Resultados-Robo
-          path: |
-            resultado.png
-            imagem_convertida.jpg
+      - name: Salvar imagem atualizada no repositório
+        run: |
+          git config --global user.name "Robo da Carteirinha"
+          git config --global user.email "robo@github.com"
+          git add imagem_convertida.jpg
+          git commit -m "Atualiza QR Code diário" || echo "Sem mudanças"
+          git push
