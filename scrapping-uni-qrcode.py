@@ -40,7 +40,7 @@ def login_ceub(url):
             sb.save_screenshot("tela_do_erro.png")
             print("Uma foto da tela foi salva como 'tela_do_erro.png'")
 
-            return
+            raise
         
         print("Esperando o servidor gerar o QR Code...")
         sb.sleep(10)
