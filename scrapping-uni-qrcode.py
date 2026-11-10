@@ -1,73 +1,71 @@
-from seleniumbase import sb_cdp
-from seleniumbase import SB
 import base64
+import binascii
 import os
+from pathlib import Path
 
-ra_espaco_aluno = os.environ.get('RA_ESPACO_ALUNO')
-senha_espaco_aluno = os.environ.get('SENHA_ESPACO_ALUNO')
-
-def bypass_captcha_on_url(url):
-    sb = sb_cdp.Chrome()
-    sb.goto(url)
+from seleniumbase import SB
 
 
-    sb.type('#coAcesso', ra_espaco_aluno)
-    sb.type('#coSenha', senha_espaco_aluno)
-    sb.click('#btn-login')
+OUTPUT = Path("imagem_convertida.jpg")
 
-    sb.sleep(3)
-    sb.quit()
 
+def decode_qr_image(src):
+    header, separator, payload = (src or "").partition(",")
+    if not separator or not header.startswith("data:image/") or not header.endswith(";base64"):
+        raise ValueError("O portal não retornou uma imagem do QR Code em base64.")
+    try:
+        image = base64.b64decode(payload, validate=True)
+    except binascii.Error as error:
+        raise ValueError("A imagem do QR Code contém base64 inválido.") from error
+    if not image:
+        raise ValueError("A imagem do QR Code está vazia.")
+    return image
 
 
 def login_ceub(url):
-    
+    # O checkout pode trazer uma imagem antiga. Ela nunca comprova uma coleta nova.
+    OUTPUT.unlink(missing_ok=True)
+    ra = os.environ.get("RA_ESPACO_ALUNO")
+    senha = os.environ.get("SENHA_ESPACO_ALUNO")
+    if not ra or not senha:
+        raise RuntimeError("Configure os secrets RA_ESPACO_ALUNO e SENHA_ESPACO_ALUNO.")
+
     with SB(uc=True, headless=True) as sb:
-        sb.goto(url)
-        sb.type('#coAcesso', ra_espaco_aluno)
-        sb.type('#coSenha', senha_espaco_aluno)
-        sb.click('#btn-login')
-        
         try:
-                    # TRY: O robô "tenta" esperar o botão da carteirinha aparecer na tela.
-                    # timeout=20 dá a ele 20 segundos de paciência antes de desistir.
-                    sb.wait_for_element('#masterfab', timeout=20)
-                    print("Sucesso! Passou do login e achou o botão.")
-                    
-        except Exception as erro:
-            print("ERRO: O robô travou na tela de login (provavelmente bloqueio de CAPTCHA).")
+            sb.goto(url)
+            sb.type("#coAcesso", ra)
+            sb.type("#coSenha", senha)
+            sb.click("#btn-login")
+            try:
+                sb.wait_for_element("#masterfab", timeout=20)
+            except Exception as error:
+                raise RuntimeError(
+                    "Login não concluído. Verifique a captura de tela: o portal pode "
+                    "exigir CAPTCHA, rejeitar as credenciais ou estar indisponível."
+                ) from error
 
-            sb.save_screenshot("tela_do_erro.png")
-            print("Uma foto da tela foi salva como 'tela_do_erro.png'")
-
-            return
-        
-        print("Esperando o servidor gerar o QR Code...")
-        sb.sleep(10)
-        sb.execute_script("ShowQrCode();")
-
-        qr_code_base64_raw = ""
-        for tentativa in range(15):
-            sb.sleep(1)
-            qr_code_base64_raw = sb.get_attribute('#imgQRCode', 'src') or ""
-            
-            if "base64" in qr_code_base64_raw:
-                break
-
-        qr_code_base64_raw = sb.get_attribute('#imgQRCode', 'src')
-        
-        if "," in qr_code_base64_raw:
-            qr_code_base64 = qr_code_base64_raw.split(",")[1]
-
-            imagem_bytes = base64.b64decode(qr_code_base64)
-            with open("imagem_convertida.jpg", "wb") as arquivo_jpg:
-                arquivo_jpg.write(imagem_bytes)
-            print("O format esta correto")
-        else:
-            print ("o formato nao é base 64")
-            print(qr_code_base64_raw)
-        print("Imagem JPG salva com sucesso!")
-            
+            print("Login concluído. Esperando o servidor gerar o QR Code...")
+            sb.sleep(10)
+            sb.execute_script("ShowQrCode();")
+            sb.wait_for_element("#imgQRCode", timeout=20)
+            for _ in range(15):
+                sb.sleep(1)
+                src = sb.get_attribute("#imgQRCode", "src") or ""
+                if src.startswith("data:image/") and ";base64," in src:
+                    image = decode_qr_image(src)
+                    OUTPUT.write_bytes(image)
+                    print("QR Code obtido nesta execução e salvo em imagem_convertida.jpg.")
+                    return
+            raise RuntimeError("O portal não gerou uma imagem base64 do QR Code em 15 tentativas.")
+        except Exception:
+            # Inclui erros anteriores ao clique de login e durante a geração da imagem.
+            OUTPUT.unlink(missing_ok=True)
+            try:
+                sb.save_screenshot("tela_do_erro.png")
+                print("Captura do erro salva como tela_do_erro.png.")
+            except Exception:
+                print("Não foi possível salvar a captura do erro.")
+            raise
 
 
 if __name__ == "__main__":

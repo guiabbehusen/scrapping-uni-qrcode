@@ -6,14 +6,21 @@ on:
     - cron: '13 10 * * 1-5'
 
 permissions:
-  contents: write
+  contents: read
+
+concurrency:
+  group: scrapping-uni-qrcode
+  cancel-in-progress: false
 
 jobs:
   run-bot:
     runs-on: ubuntu-latest
+    timeout-minutes: 15
     steps:
       - name: Baixar o código
         uses: actions/checkout@v4
+        with:
+          persist-credentials: false
 
       - name: Configurar o Python
         uses: actions/setup-python@v5
@@ -30,34 +37,42 @@ jobs:
         env:
           RA_ESPACO_ALUNO: ${{ secrets.RA_ESPACO_ALUNO }}
           SENHA_ESPACO_ALUNO: ${{ secrets.SENHA_ESPACO_ALUNO }}
-        run: python scrapping-uni-qrcode.py
+        run: |
+          rm -f imagem_convertida.jpg
+          python scrapping-uni-qrcode.py
+          if [ ! -s imagem_convertida.jpg ]; then
+            echo "::error::O robô não gerou uma imagem nova do QR Code."
+            exit 1
+          fi
 
-      # NOVO PASSO: Salva a foto do erro (ou sucesso) para você poder baixar e ver
       - name: Salvar prints (Artefatos)
         uses: actions/upload-artifact@v4
         if: always() # Garante que vai salvar a foto mesmo se algo der errado antes
         with:
           name: imagens-debug
           path: "*.png"
+          if-no-files-found: ignore
 
       - name: Baixar o Armazenamento Privado
         uses: actions/checkout@v4
         with:
           repository: guiabbehusen/imagem-qrcode-ceub
           token: ${{ secrets.KEY_GITHUB }}
+          ref: main
           path: privado
 
-      # NOVO PASSO: Só tenta mover a foto se ela realmente existir
       - name: Mover a foto e salvar no Cofre
         run: |
-          if [ -f imagem_convertida.jpg ]; then
-            cp imagem_convertida.jpg privado/
-            cd privado
-            git config user.name "QR Bot"
-            git config user.email "robo@github.com"
-            git add imagem_convertida.jpg
-            git commit -m "Atualiza QR Code diário no Cofre" || echo "Sem mudanças"
-            git push
-          else
-            echo "A foto não foi gerada hoje. Verifique os artefatos baixados para ver o erro na tela."
+          test -s imagem_convertida.jpg
+          cp imagem_convertida.jpg privado/
+          cd privado
+          git config user.name "QR Bot"
+          git config user.email "robo@github.com"
+          git add imagem_convertida.jpg
+          if git diff --cached --quiet; then
+            echo "QR Code coletado nesta execução; a imagem é idêntica à do repositório privado." >> "$GITHUB_STEP_SUMMARY"
+            exit 0
           fi
+          git commit -m "Atualiza QR Code diário no Cofre"
+          git push origin HEAD:main
+          echo "QR Code coletado nesta execução e atualizado no repositório privado." >> "$GITHUB_STEP_SUMMARY"

@@ -1,0 +1,5 @@
+__pycache__/
+*.py[cod]
+/imagem_convertida.jpg
+/tela_do_erro.png
+/downloaded_files/
