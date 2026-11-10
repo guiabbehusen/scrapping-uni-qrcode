@@ -22,7 +22,7 @@ def bypass_captcha_on_url(url):
 
 def login_ceub(url):
     
-    with SB(uc=True, headless=True) as sb:
+    with SB(uc=True, headless=False, xvfb=True) as sb:
         sb.goto(url)
         sb.type('#coAcesso', ra_espaco_aluno)
         sb.type('#coSenha', senha_espaco_aluno)
